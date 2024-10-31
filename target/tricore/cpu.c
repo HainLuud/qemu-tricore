@@ -23,6 +23,7 @@
 #include "exec/exec-all.h"
 #include "qemu/error-report.h"
 #include "tcg/debug-assert.h"
+#include "qemu/log.h"
 
 static inline void set_feature(CPUTriCoreState *env, int feature)
 {
@@ -47,7 +48,7 @@ static vaddr tricore_cpu_get_pc(CPUState *cs)
 static void tricore_cpu_synchronize_from_tb(CPUState *cs,
                                             const TranslationBlock *tb)
 {
-    tcg_debug_assert(!tcg_cflags_has(cs, CF_PCREL));
+    tcg_debug_assert(!(cs->tcg_cflags & CF_PCREL));
     cpu_env(cs)->PC = tb->pc;
 }
 
@@ -78,6 +79,28 @@ static bool tricore_cpu_has_work(CPUState *cs)
 static int tricore_cpu_mmu_index(CPUState *cs, bool ifetch)
 {
     return 0;
+}
+
+static bool tricore_cpu_exec_interrupt(CPUState *cs, int interrupt_request)
+{
+    TriCoreCPU *cpu = TRICORE_CPU(cs);
+    CPUTriCoreState *env = &cpu->env;
+
+
+    if (env->reset_pending) {
+        qemu_log("tricore_cpu_exec_interrupt RESET\n");
+        cpu_state_reset(env);
+        env->reset_pending = 0;
+        return true;
+    }
+
+    if ((interrupt_request & CPU_INTERRUPT_HARD)
+            && (env->ICR & (MASK_ICR_IE_1_6)) >> 15) {
+        cs->exception_index = EXCP_IRQ;
+        tricore_cpu_do_interrupt(cs);
+        return true;
+    }
+    return false;
 }
 
 static void tricore_cpu_realizefn(DeviceState *dev, Error **errp)
@@ -155,11 +178,6 @@ static void tc37x_initfn(Object *obj)
     set_feature(&cpu->env, TRICORE_FEATURE_162);
 }
 
-static bool tricore_cpu_exec_interrupt(CPUState *cs, int interrupt_request)
-{
-    /* Interrupts are not implemented */
-    return false;
-}
 
 #include "hw/core/sysemu-cpu-ops.h"
 
@@ -174,8 +192,8 @@ static const TCGCPUOps tricore_tcg_ops = {
     .synchronize_from_tb = tricore_cpu_synchronize_from_tb,
     .restore_state_to_opc = tricore_restore_state_to_opc,
     .tlb_fill = tricore_cpu_tlb_fill,
+    .do_interrupt = tricore_cpu_do_interrupt,
     .cpu_exec_interrupt = tricore_cpu_exec_interrupt,
-    .cpu_exec_halt = tricore_cpu_has_work,
 };
 
 static void tricore_cpu_class_init(ObjectClass *c, void *data)
