@@ -25,6 +25,7 @@
 #include "exec/address-spaces.h"
 #include "qom/object.h"
 
+#include "hw/tricore/tc1798_soc.h"
 #include "hw/tricore/tc27xd_soc.h"
 #include "hw/tricore/tc39xb_soc.h"
 
@@ -38,6 +39,7 @@ DECLARE_OBJ_CHECKERS(TriBoardMachineState, TriBoardMachineClass,
 struct TriBoardMachineState {
     MachineState parent;
 
+    TC1798SoCState tc1798_soc;
     TC27XDSoCState tc27xd_soc;
     TC39XBSoCState tc39xb_soc;
 };

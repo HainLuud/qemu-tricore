@@ -119,6 +119,18 @@ static void triboard_machine_tc39xb_init(MachineState *machine)
     }
 }
 
+static void triboard_machine_tc397b_class_init(ObjectClass *oc,
+        void *data)
+{
+    MachineClass *mc = MACHINE_CLASS(oc);
+    TriBoardMachineClass *amc = TRIBOARD_MACHINE_CLASS(oc);
+
+    mc->init        = triboard_machine_tc39xb_init;
+    mc->desc        = "Infineon AURIX TriBoard TC397 (B-Step)";
+    mc->max_cpus    = 1;
+    amc->soc_name   = "tc397b-soc";
+};
+
 static void triboard_machine_tc27xd_init(MachineState *machine)
 {
     TriBoardMachineState *ms = TRIBOARD_MACHINE(machine);
@@ -149,19 +161,39 @@ static void triboard_machine_tc277d_class_init(ObjectClass *oc,
     mc->desc        = "Infineon AURIX TriBoard TC277 (D-Step)";
     mc->max_cpus    = 1;
     amc->soc_name   = "tc277d-soc";
-};
+}
 
-static void triboard_machine_tc397b_class_init(ObjectClass *oc,
+static void triboard_machine_tc1798_init(MachineState *machine)
+{
+    TriBoardMachineState *ms = TRIBOARD_MACHINE(machine);
+    TriBoardMachineClass *amc = TRIBOARD_MACHINE_GET_CLASS(machine);
+
+    object_initialize_child(OBJECT(machine), "tc1798_soc", &ms->tc1798_soc, amc->soc_name);
+    sysbus_realize(SYS_BUS_DEVICE(&ms->tc1798_soc), &error_fatal);
+
+    if (machine->kernel_filename) {
+        tricore_load_kernel(machine->kernel_filename);
+    }
+
+    MemoryRegion *brom = &ms->tc1798_soc.flashmem.brom_c;
+    if (tricore_load_brom(brom)) {
+        TriCoreCPU *cpu = TRICORE_CPU(first_cpu);
+        CPUTriCoreState *env = &cpu->env;
+        env->PC_entry = brom->addr;
+    }
+}
+
+static void triboard_machine_tc1798_class_init(ObjectClass *oc,
         void *data)
 {
     MachineClass *mc = MACHINE_CLASS(oc);
     TriBoardMachineClass *amc = TRIBOARD_MACHINE_CLASS(oc);
 
-    mc->init        = triboard_machine_tc39xb_init;
-    mc->desc        = "Infineon AURIX TriBoard TC397 (B-Step)";
+    mc->init        = triboard_machine_tc1798_init;
+    mc->desc        = "Infineon AUDO MAX TC1798 TriBoard";
     mc->max_cpus    = 1;
-    amc->soc_name   = "tc397b-soc";
-};
+    amc->soc_name   = "tc1798-instance-soc";
+}
 
 static const TypeInfo triboard_machine_types[] = {
     {
@@ -170,6 +202,10 @@ static const TypeInfo triboard_machine_types[] = {
         .instance_size  = sizeof(TriBoardMachineState),
         .class_size     = sizeof(TriBoardMachineClass),
         .abstract       = true,
+    }, {
+        .name           = MACHINE_TYPE_NAME("AUDO_MAX_TC1798_TRB"),
+        .parent         = TYPE_TRIBOARD_MACHINE,
+        .class_init     = triboard_machine_tc1798_class_init,
     }, {
         .name           = MACHINE_TYPE_NAME("KIT_AURIX_TC277D_TRB"),
         .parent         = TYPE_TRIBOARD_MACHINE,

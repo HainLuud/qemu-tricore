@@ -71,6 +71,7 @@ static void tricore_cpu_reset_hold(Object *obj, ResetType type)
     cpu_state_reset(cpu_env(cs));
 }
 
+// TODO: Implement this
 static bool tricore_cpu_has_work(CPUState *cs)
 {
     return true;
@@ -164,6 +165,13 @@ static void tc1797_initfn(Object *obj)
     set_feature(&cpu->env, TRICORE_FEATURE_131);
 }
 
+static void tc1798_initfn(Object *obj)
+{
+    TriCoreCPU *cpu = TRICORE_CPU(obj);
+
+    set_feature(&cpu->env, TRICORE_FEATURE_16);
+}
+
 static void tc27x_initfn(Object *obj)
 {
     TriCoreCPU *cpu = TRICORE_CPU(obj);
@@ -194,6 +202,7 @@ static const TCGCPUOps tricore_tcg_ops = {
     .tlb_fill = tricore_cpu_tlb_fill,
     .do_interrupt = tricore_cpu_do_interrupt,
     .cpu_exec_interrupt = tricore_cpu_exec_interrupt,
+    .cpu_exec_halt = tricore_cpu_has_work,
 };
 
 static void tricore_cpu_class_init(ObjectClass *c, void *data)
@@ -243,6 +252,7 @@ static const TypeInfo tricore_cpu_type_infos[] = {
     },
     DEFINE_TRICORE_CPU_TYPE("tc1796", tc1796_initfn),
     DEFINE_TRICORE_CPU_TYPE("tc1797", tc1797_initfn),
+    DEFINE_TRICORE_CPU_TYPE("tc1798", tc1798_initfn),
     DEFINE_TRICORE_CPU_TYPE("tc27x", tc27x_initfn),
     DEFINE_TRICORE_CPU_TYPE("tc37x", tc37x_initfn),
 };
